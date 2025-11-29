@@ -1,6 +1,5 @@
 {
   "name": "mc-controller",
-  "type": "module",
   "scripts": {
     "dev": "ts-node-esm src/index.ts",
     "build": "tsc"

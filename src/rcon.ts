@@ -17,21 +17,33 @@ export async function withRcon<T>(fn: (rcon: Rcon) => Promise<T>): Promise<T> {
 
 // プレイヤー一覧（未整形）
 export async function listRaw() {
-  return withRcon(async (r) => {
-    return await r.send("list");
-  });
+  try {
+    return withRcon(async (r) => {
+      return await r.send("list");
+    });
+  } catch (error) {
+    return "サーバーに接続できませんでした。";
+  }
 }
 
 // アナウンス（say）
 export async function announceRaw(msg: string) {
-  return withRcon(async (r) => {
-    return await r.send(`say ${msg}`);
-  });
+  try {
+    return withRcon(async (r) => {
+      return await r.send(`say ${msg}`);
+    });
+  } catch (error) {
+    return "サーバーに接続できませんでした。";
+  }
 }
 
 // 任意コマンド
 export async function runRaw(cmd: string) {
-  return withRcon(async (r) => {
-    return await r.send(cmd);
-  });
+  try {
+    return withRcon(async (r) => {
+      return await r.send(cmd);
+    });
+  } catch (error) {
+    return "サーバーに接続できませんでした。";
+  }
 }

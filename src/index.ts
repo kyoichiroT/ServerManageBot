@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, Events, GatewayIntentBits } from "discord.js";
 import "dotenv/config";
 import { startServer, stopServer, getStatus } from "./ec2.js";
 import { announceRaw, listRaw, runRaw } from "./rcon.js";
@@ -9,7 +9,7 @@ const client = new Client({
 
 let serverStartedAt: number | null = null;
 
-client.once("ready", () => {
+client.once(Events.ClientReady, () => {
   console.log(`Logged in as ${client.user?.tag}`);
 });
 
@@ -31,6 +31,22 @@ client.on("interactionCreate", async (interaction) => {
     } catch (error) {
       console.error("Error starting server:", error);
       await interaction.followUp("サーバーの起動中にエラーが発生しました。");
+    }
+  }
+
+  if (interaction.commandName === "mc-stop-force") {
+    try {
+      await interaction.reply("サーバーを強制停止しています…");
+      await stopServer();
+      let status = await getStatus();
+      while (status !== "stopped") {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        status = await getStatus();
+      }
+      await interaction.followUp("サーバーが停止しました。");
+    } catch (error) {
+      console.error("Error stopping server:", error);
+      await interaction.followUp("サーバーの停止中にエラーが発生しました。");
     }
   }
 
@@ -56,34 +72,52 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.commandName === "mc-status") {
+    await interaction.deferReply();
     try {
       const status = await getStatus();
-      await interaction.reply(`現在の状態： **${status}**`);
+      await interaction.editReply(`現在の状態： **${status}**`);
     } catch (error) {
       console.error("Error getting status:", error);
-      await interaction.reply("サーバーの状態取得中にエラーが発生しました。");
+      await interaction.editReply(
+        "サーバーの状態取得中にエラーが発生しました。"
+      );
     }
   }
-});
-
-client.on("interactionCreate", async (i) => {
-  if (!i.isChatInputCommand()) return;
-
-  if (i.commandName === "mc-online") {
-    const res = await listRaw();
-    await i.reply(`Raw output:\n${res}`);
+  if (interaction.commandName === "mc-online") {
+    await interaction.deferReply();
+    try {
+      const res = await listRaw();
+      await interaction.editReply(`Raw output:\n${res}`);
+    } catch (error) {
+      console.error("Error getting online players:", error);
+      await interaction.editReply(
+        "プレイヤー一覧の取得中にエラーが発生しました。"
+      );
+    }
   }
 
-  if (i.commandName === "mc-say") {
-    const msg = i.options.getString("message", true);
-    const res = await announceRaw(msg);
-    await i.reply(`Raw output:\n${res}`);
+  if (interaction.commandName === "mc-say") {
+    await interaction.deferReply();
+    try {
+      const msg = interaction.options.getString("message", true);
+      const res = await announceRaw(msg);
+      await interaction.editReply(`Raw output:\n${res}`);
+    } catch (error) {
+      console.error("Error sending announcement:", error);
+      await interaction.editReply("アナウンスの送信中にエラーが発生しました。");
+    }
   }
 
-  if (i.commandName === "mc-cmd") {
-    const cmd = i.options.getString("command", true);
-    const res = await runRaw(cmd);
-    await i.reply(`> ${cmd}\n\`\`\`\n${res}\n\`\`\``);
+  if (interaction.commandName === "mc-cmd") {
+    await interaction.deferReply();
+    try {
+      const cmd = interaction.options.getString("command", true);
+      const res = await runRaw(cmd);
+      await interaction.editReply(`> ${cmd}\n\`\`\`\n${res}\n\`\`\``);
+    } catch (error) {
+      console.error("Error running command:", error);
+      await interaction.editReply("コマンドの実行中にエラーが発生しました。");
+    }
   }
 });
 
