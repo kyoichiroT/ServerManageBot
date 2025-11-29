@@ -18,6 +18,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
   if (interaction.commandName === "mc-start") {
+    serverStartedAt = Date.now();
     try {
       await interaction.reply("インスタンスを起動しています…");
       await startServer();
@@ -35,6 +36,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.commandName === "mc-stop-force") {
+    serverStartedAt = null;
     try {
       await interaction.reply("サーバーを強制停止しています…");
       await stopServer();
@@ -51,6 +53,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   if (interaction.commandName === "mc-stop") {
+    serverStartedAt = null;
     try {
       await interaction.reply("サーバーを停止しています…");
       await runRaw("save-all");
@@ -87,7 +90,7 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply();
     try {
       const res = await listRaw();
-      await interaction.editReply(`Raw output:\n${res}`);
+      await interaction.editReply(res);
     } catch (error) {
       console.error("Error getting online players:", error);
       await interaction.editReply(
@@ -101,7 +104,7 @@ client.on("interactionCreate", async (interaction) => {
     try {
       const msg = interaction.options.getString("message", true);
       const res = await announceRaw(msg);
-      await interaction.editReply(`Raw output:\n${res}`);
+      await interaction.editReply(res);
     } catch (error) {
       console.error("Error sending announcement:", error);
       await interaction.editReply("アナウンスの送信中にエラーが発生しました。");
@@ -121,7 +124,6 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-let emptyChecks = 0;
 const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 setInterval(async () => {
@@ -131,21 +133,13 @@ setInterval(async () => {
     const m = raw.match(/There are (\d+)/);
     const count = m ? Number(m[1]) : 0;
 
-    // 無人判定
-    if (count === 0) {
-      emptyChecks++;
-    } else {
-      emptyChecks = 0;
-    }
-
     // 30分無人 → 自動停止
-    if (emptyChecks >= 2) {
-      await announceRaw("無人状態が20分続いたためサーバーを停止します。");
+    if (count === 0) {
+      await announceRaw("無人状態が5分続いたためサーバーを停止します。");
       await runRaw("save-all");
       await new Promise((r) => setTimeout(r, 3000));
       await runRaw("stop");
       await stopServer();
-      emptyChecks = 0;
       serverStartedAt = null;
       return;
     }
@@ -157,7 +151,6 @@ setInterval(async () => {
       await new Promise((r) => setTimeout(r, 3000));
       await runRaw("stop");
       await stopServer();
-      emptyChecks = 0;
       serverStartedAt = null;
       return;
     }
