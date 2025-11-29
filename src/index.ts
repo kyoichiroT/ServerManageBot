@@ -135,10 +135,14 @@ setInterval(async () => {
 
     // 30分無人 → 自動停止
     if (count === 0) {
-      await announceRaw("無人状態が5分続いたためサーバーを停止します。");
-      await runRaw("save-all");
-      await new Promise((r) => setTimeout(r, 3000));
-      await runRaw("stop");
+      try {
+        await announceRaw("無人状態が5分続いたためサーバーを停止します。");
+        await runRaw("save-all");
+        await new Promise((r) => setTimeout(r, 3000));
+        await runRaw("stop");
+      } catch {
+        // RCON繋がらないときは無視して停止だけ実行
+      }
       await stopServer();
       serverStartedAt = null;
       return;
@@ -146,10 +150,14 @@ setInterval(async () => {
 
     // 6時間超えたら問答無用停止
     if (serverStartedAt && Date.now() - serverStartedAt >= SIX_HOURS) {
-      await announceRaw("起動から6時間経過したためサーバーを停止します。");
-      await runRaw("save-all");
-      await new Promise((r) => setTimeout(r, 3000));
-      await runRaw("stop");
+      try {
+        await announceRaw("起動から6時間経過したためサーバーを停止します。");
+        await runRaw("save-all");
+        await new Promise((r) => setTimeout(r, 3000));
+        await runRaw("stop");
+      } catch {
+        // RCON繋がらないときは無視して停止だけ実行
+      }
       await stopServer();
       serverStartedAt = null;
       return;
