@@ -2,8 +2,11 @@
 import { Rcon } from "rcon-client";
 
 export async function withRcon<T>(fn: (rcon: Rcon) => Promise<T>): Promise<T> {
+  if (!process.env.ElasticIP) {
+    throw new Error("ElasticIP is not defined in environment variables.");
+  }
   const rcon = await Rcon.connect({
-    host: "127.0.0.1", // コンテナを同居させている前提
+    host: process.env.ElasticIP, // コンテナを同居させている前提
     port: Number(process.env.RCON_PORT || "25575"),
     password: process.env.RCON_PASSWORD!,
   });
